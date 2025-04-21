@@ -39,6 +39,9 @@ climatecheck/
 │   ├── runs/                 # Training runs
 │   ├── predictions/          # Model predictions
 │   └── analysis/             # Result analysis
+├── references/               # Intersting papers for literature review
+│   ├── retrieval/            # About scientific claim retrieval 
+│   ├── verification/         # About scientific claim verification
 ├── src/                      # Source code
 │   ├── data/                 # Data processing utilities
 │   ├── knowledge/            # Knowledge graph construction

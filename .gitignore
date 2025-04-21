@@ -172,3 +172,16 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+# Ignore data (raw + processed + knowledge graph)
+data/
+!data/.gitkeep  # (Optional) allow tracking empty folder
+
+# Ignore experiment outputs
+outputs/
+!outputs/.gitkeep
+
+# Ignore models
+models/
+!models/.gitkeep  # (Optional) allow tracking empty folder
