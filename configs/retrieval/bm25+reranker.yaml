@@ -1,0 +1,30 @@
+# BM25 with MS MARCO Reranker Configuration
+# ========================================
+
+# Basic experiment info
+experiment_id: bm25_msmarco_reranker
+task_type: retrieval
+description: "BM25 retrieval with MS MARCO reranker for ClimateCheck claim verification"
+
+# Data sources
+data:
+  corpus_path: "rabuahmad/climatecheck_publications_corpus"
+  claims_path: "rabuahmad/climatecheck"
+
+# Retriever configuration
+retriever:
+  type: bm25
+  params:
+    k_bm25: 20  # Number of documents to retrieve with BM25
+    k_final: 10  # Number of documents to keep after reranking
+
+# Reranker configuration (optional - remove this section for BM25-only)
+reranker:
+  type: transformer
+  model_name: "intfloat/simlm-msmarco-reranker"
+  params:
+    max_length: 192
+
+# Evaluation settings
+evaluation:
+  k_values: [2, 5, 10]  # K values for recall@k and precision@k calculations

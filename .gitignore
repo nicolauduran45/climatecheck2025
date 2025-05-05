@@ -185,3 +185,6 @@ outputs/
 # Ignore models
 models/
 !models/.gitkeep  # (Optional) allow tracking empty folder
+notebooks/
+tests/
+tests

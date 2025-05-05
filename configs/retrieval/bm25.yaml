@@ -1,0 +1,23 @@
+# BM25 Retrieval Configuration (No Reranker)
+# =====================================
+
+# Basic experiment info
+experiment_id: bm25_only
+task_type: retrieval
+description: "Basic BM25 retrieval without reranking for ClimateCheck claim verification"
+
+# Data sources
+data:
+  corpus_path: "rabuahmad/climatecheck_publications_corpus"
+  claims_path: "rabuahmad/climatecheck"
+
+# Retriever configuration
+retriever:
+  type: bm25
+  params:
+    k_bm25: 10  # Number of documents to retrieve with BM25 (same as k_final since no reranking)
+    k_final: 10  # Number of documents to keep
+
+# Evaluation settings
+evaluation:
+  k_values: [2, 5, 10]  # K values for recall@k and precision@k calculations

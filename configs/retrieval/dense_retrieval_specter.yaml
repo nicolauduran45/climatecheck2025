@@ -1,0 +1,24 @@
+# Dense Retrieval Configuration
+# ============================
+
+# Basic experiment info
+experiment_id: dense_specter_passage
+task_type: retrieval
+description: "Dense retrieval using SPECTER embeddings with passage-level granularity"
+
+# Data sources
+data:
+  corpus_path: "rabuahmad/climatecheck_publications_corpus"
+  claims_path: "rabuahmad/climatecheck"
+
+# Retriever configuration
+retriever:
+  type: dense
+  model_name: "sentence-transformers/allenai-specter"
+  granularity: "document"  # Options: document, passage, sentence
+  params:
+    k: 10  # Number of documents to retrieve
+
+# Evaluation settings
+evaluation:
+  k_values: [2, 5, 10]  # K values for recall@k and precision@k calculations
