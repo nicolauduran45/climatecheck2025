@@ -17,6 +17,7 @@ retriever:
   params:
     k_bm25: 10  # Number of documents to retrieve with BM25 (same as k_final since no reranking)
     k_final: 10  # Number of documents to keep
+    content_type: "title+abstract"
 
 # Evaluation settings
 evaluation:

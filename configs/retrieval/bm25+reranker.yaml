@@ -17,6 +17,7 @@ retriever:
   params:
     k_bm25: 20  # Number of documents to retrieve with BM25
     k_final: 10  # Number of documents to keep after reranking
+    content_type: "abstract"
 
 # Reranker configuration (optional - remove this section for BM25-only)
 reranker:

@@ -42,9 +42,14 @@ class BM25RetrievalExperiment(ClimateCheckExperiment):
         super().__init__(config_path)
         self.retriever_type = "bm25"
         
-        # Set specific BM25 paths
-        retriever_filename = f"bm25_{self.experiment_id}.pkl"
+        # Get content type from config
+        self.content_type = self.config.get('retriever', {}).get('params', {}).get('content_type', 'title+abstract')
+        
+        # Set specific BM25 paths - include content type in filename for clarity
+        retriever_filename = f"bm25_{self.experiment_id}_{self.content_type.replace('+', '_')}.pkl"
         self.retriever_path = self.index_dir / retriever_filename
+        
+        logger.info(f"BM25 experiment initialized with content type: {self.content_type}")
         
         # Load NLTK if needed
         try:
@@ -66,8 +71,18 @@ class BM25RetrievalExperiment(ClimateCheckExperiment):
         
         logger.info("Creating BM25 retriever...")
         
-        # Prepare content field (combine title and abstract)
-        self.corpus_df['content'] = self.corpus_df['title_lowered'] + " " + self.corpus_df['abstract_lowered']
+        # Get content type from config
+        content_type = self.config.get('retriever', {}).get('params', {}).get('content_type', 'title+abstract')
+        logger.info(f"Using content type: {content_type}")
+        
+        # Prepare content field based on content_type
+        if content_type == 'title+abstract':
+            self.corpus_df['content'] = self.corpus_df['title_lowered'] + " " + self.corpus_df['abstract_lowered']
+        elif content_type == 'abstract_only':
+            self.corpus_df['content'] = self.corpus_df['abstract_lowered']
+        else:
+            logger.warning(f"Unknown content_type '{content_type}', defaulting to 'title+abstract'")
+            self.corpus_df['content'] = self.corpus_df['title_lowered'] + " " + self.corpus_df['abstract_lowered']
         
         # Create documents for the retriever
         documents = []
@@ -237,10 +252,15 @@ class DenseRetrievalExperiment(ClimateCheckExperiment):
         self.model_name = self.config.get('retriever', {}).get('model_name', 'sentence-transformers/allenai-specter')
         self.granularity = self.config.get('retriever', {}).get('granularity', 'document')
         
-        # Set specific paths for this experiment
-        self.index_file = self.index_dir / f"{self.model_name.replace('/', '_')}_{self.granularity}.faiss"
-        self.ids_file = self.index_dir / f"{self.model_name.replace('/', '_')}_{self.granularity}_ids.pkl"
-        self.embeddings_file = self.index_dir / f"{self.model_name.replace('/', '_')}_{self.granularity}_embeddings.npy"
+        # Get content type from config
+        self.content_type = self.config.get('retriever', {}).get('params', {}).get('content_type', 'title+abstract')
+        
+        # Set specific paths for this experiment, including content type
+        self.index_file = self.index_dir / f"{self.model_name.replace('/', '_')}_{self.granularity}_{self.content_type.replace('+', '_')}.faiss"
+        self.ids_file = self.index_dir / f"{self.model_name.replace('/', '_')}_{self.granularity}_{self.content_type.replace('+', '_')}_ids.pkl"
+        self.embeddings_file = self.index_dir / f"{self.model_name.replace('/', '_')}_{self.granularity}_{self.content_type.replace('+', '_')}_embeddings.npy"
+        
+        logger.info(f"Dense retrieval experiment initialized with content type: {self.content_type}")
     
     def create_index(self):
         """Create and save a FAISS index with embeddings."""
@@ -248,13 +268,20 @@ class DenseRetrievalExperiment(ClimateCheckExperiment):
             import faiss
             from sentence_transformers import SentenceTransformer
             
-            logger.info(f"Creating dense index with model {self.model_name} at {self.granularity} level")
+            logger.info(f"Creating dense index with model {self.model_name} at {self.granularity} level using content type: {self.content_type}")
             
             # Load embedding model
             model = SentenceTransformer(self.model_name)
             
-            # Prepare content based on granularity
-            self.corpus_df['content'] = self.corpus_df['title_lowered'] + " " + self.corpus_df['abstract_lowered']
+            # Prepare content based on content_type
+            if self.content_type == 'title+abstract':
+                self.corpus_df['content'] = self.corpus_df['title_lowered'] + " " + self.corpus_df['abstract_lowered']
+            elif self.content_type == 'abstract_only':
+                self.corpus_df['content'] = self.corpus_df['abstract_lowered']
+            else:
+                logger.warning(f"Unknown content_type '{self.content_type}', defaulting to 'title+abstract'")
+                self.corpus_df['content'] = self.corpus_df['title_lowered'] + " " + self.corpus_df['abstract_lowered']
+            
             texts = []
             ids = []
             
@@ -290,7 +317,7 @@ class DenseRetrievalExperiment(ClimateCheckExperiment):
             
             # Generate embeddings
             logger.info(f"Encoding {len(texts)} texts...")
-            embeddings = model.encode(texts, convert_to_numpy=True, show_progress_bar=True, normalize_embeddings=True)
+            embeddings = model.encode(texts, convert_to_numpy=True, show_progress_bar=True, normalize_embeddings=True, batch_size=16)
             
             # Create and save FAISS index
             dim = embeddings.shape[1]
@@ -315,87 +342,3 @@ class DenseRetrievalExperiment(ClimateCheckExperiment):
             logger.error(f"Required library not found: {e}")
             logger.error("Please install faiss-cpu or faiss-gpu and sentence-transformers")
             raise
-    
-    def load_index(self):
-        """Load a FAISS index and IDs from disk."""
-        try:
-            import faiss
-            
-            if not self.index_file.exists() or not self.ids_file.exists():
-                logger.info(f"No existing index found at {self.index_file}")
-                return None, None, None
-            
-            logger.info(f"Loading FAISS index from {self.index_file}")
-            index = faiss.read_index(str(self.index_file))
-            
-            with open(self.ids_file, "rb") as f:
-                ids = pickle.load(f)
-                
-            # Load the embedding model
-            from sentence_transformers import SentenceTransformer
-            model = SentenceTransformer(self.model_name)
-            
-            return index, ids, model
-            
-        except ImportError as e:
-            logger.error(f"Required library not found: {e}")
-            raise
-    
-    def retrieve(self, index, ids, model, k=10):
-        """Retrieve documents using dense embeddings."""
-        results = {}
-        
-        for _, row in tqdm(self.claims_df.iterrows(), total=len(self.claims_df), desc="Retrieving with embeddings"):
-            claim_id = row['claim_id']
-            claim_text = row['claim']
-            
-            # Generate query embedding
-            query_embedding = model.encode([claim_text], convert_to_numpy=True, normalize_embeddings=True)
-            
-            # Search in the index
-            scores, retrieved_idx = index.search(query_embedding, k)
-            
-            # Format results
-            results[claim_id] = [
-                {
-                    "abstract_id": self._get_document_id(ids[i]),
-                    "score": float(scores[0][j]),
-                    "rank": j + 1
-                }
-                for j, i in enumerate(retrieved_idx[0])
-            ]
-            
-        return results
-    
-    def _get_document_id(self, index_id):
-        """Extract the document ID from an index ID that might include passage/sentence info."""
-        # If using document granularity, return as is
-        if self.granularity == 'document':
-            return index_id
-            
-        # For passage/sentence, extract the base document ID
-        return index_id.split('_')[0] if '_' in index_id else index_id
-    
-    def run(self):
-        """Run the complete dense retrieval experiment."""
-        # Load or create the FAISS index
-        index, ids, model = self.load_index()
-        if not (index and ids and model):
-            index, ids, model = self.create_index()
-        
-        # Get retrieval parameters
-        k = self.config.get('retriever', {}).get('params', {}).get('k', 10)
-        
-        # Perform retrieval
-        logger.info(f"Retrieving documents with dense embeddings (k={k})")
-        retrieval_results = self.retrieve(index, ids, model, k)
-        
-        # Evaluate results
-        logger.info("Generating gold data and evaluating results...")
-        gold_data = self.generate_gold_data()
-        metrics = self.evaluate(retrieval_results, gold_data)
-        
-        # Save results
-        self.save_results(metrics, retrieval_results)
-        
-        return metrics, retrieval_results
