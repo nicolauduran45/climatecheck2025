@@ -46,8 +46,9 @@ class BM25RetrievalExperiment(ClimateCheckExperiment):
         self.content_type = self.config.get('retriever', {}).get('params', {}).get('content_type', 'title+abstract')
         
         # Set specific BM25 paths - include content type in filename for clarity
-        retriever_filename = f"bm25_{self.experiment_id}_{self.content_type.replace('+', '_')}.pkl"
+        retriever_filename = f"bm25_{self.content_type.replace('+', '_')}.pkl"
         self.retriever_path = self.index_dir / retriever_filename
+        print(self.retriever_path)
         
         logger.info(f"BM25 experiment initialized with content type: {self.content_type}")
         
@@ -209,6 +210,7 @@ class BM25RetrievalExperiment(ClimateCheckExperiment):
     def run(self):
         """Run the complete BM25 retrieval experiment."""
         # Load or create BM25 retriever
+        print(self.retriever_path)
         retriever = self.load_retriever()
         if not retriever:
             retriever = self.create_retriever()

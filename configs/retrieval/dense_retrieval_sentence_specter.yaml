@@ -2,9 +2,9 @@
 # ============================
 
 # Basic experiment info
-experiment_id: dense_specter_document
+experiment_id: dense_specter_sentence
 task_type: retrieval
-description: "Dense retrieval using SPECTER embeddings with passage-level granularity"
+description: "Dense retrieval using SPECTER embeddings with sentence-level granularity"
 
 # Data sources
 data:
@@ -15,7 +15,7 @@ data:
 retriever:
   type: dense
   model_name: "sentence-transformers/allenai-specter"
-  granularity: "document"  # Options: document, passage, sentence
+  granularity: "sentence"  # Options: document, passage, sentence
   params:
     k: 10  # Number of documents to retrieve
     content_type: "abstract_only"
