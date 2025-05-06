@@ -67,7 +67,7 @@ climatecheck/
 ## 🏃‍♂️ Running Experiments
 ```bash
 # Run retrieval experiment
-python -m src.run_experiment --config configs/retrieval/dense_retrieval_specter.yaml
+python -m src.run_experiment --config configs/retrieval/dense_retrieval_document_specter.yaml
 # Run verification experiment
 
 # Run end-to-end pipeline

@@ -342,3 +342,86 @@ class DenseRetrievalExperiment(ClimateCheckExperiment):
             logger.error(f"Required library not found: {e}")
             logger.error("Please install faiss-cpu or faiss-gpu and sentence-transformers")
             raise
+    def load_index(self):
+        """Load a FAISS index and IDs from disk."""
+        try:
+            import faiss
+            
+            if not self.index_file.exists() or not self.ids_file.exists():
+                logger.info(f"No existing index found at {self.index_file}")
+                return None, None, None
+            
+            logger.info(f"Loading FAISS index from {self.index_file}")
+            index = faiss.read_index(str(self.index_file))
+            
+            with open(self.ids_file, "rb") as f:
+                ids = pickle.load(f)
+                
+            # Load the embedding model
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer(self.model_name)
+            
+            return index, ids, model
+            
+        except ImportError as e:
+            logger.error(f"Required library not found: {e}")
+            raise
+    
+    def retrieve(self, index, ids, model, k=10):
+        """Retrieve documents using dense embeddings."""
+        results = {}
+        
+        for _, row in tqdm(self.claims_df.iterrows(), total=len(self.claims_df), desc="Retrieving with embeddings"):
+            claim_id = row['claim_id']
+            claim_text = row['claim']
+            
+            # Generate query embedding
+            query_embedding = model.encode([claim_text], convert_to_numpy=True, normalize_embeddings=True)
+            
+            # Search in the index
+            scores, retrieved_idx = index.search(query_embedding, k)
+            
+            # Format results
+            results[claim_id] = [
+                {
+                    "abstract_id": self._get_document_id(ids[i]),
+                    "score": float(scores[0][j]),
+                    "rank": j + 1
+                }
+                for j, i in enumerate(retrieved_idx[0])
+            ]
+            
+        return results
+    
+    def _get_document_id(self, index_id):
+        """Extract the document ID from an index ID that might include passage/sentence info."""
+        # If using document granularity, return as is
+        if self.granularity == 'document':
+            return index_id
+            
+        # For passage/sentence, extract the base document ID
+        return index_id.split('_')[0] if '_' in index_id else index_id
+    
+    def run(self):
+        """Run the complete dense retrieval experiment."""
+        # Load or create the FAISS index
+        index, ids, model = self.load_index()
+        if not (index and ids and model):
+            index, ids, model = self.create_index()
+        
+        # Get retrieval parameters
+        k = self.config.get('retriever', {}).get('params', {}).get('k', 10)
+        
+        # Perform retrieval
+        logger.info(f"Retrieving documents with dense embeddings (k={k})")
+        retrieval_results = self.retrieve(index, ids, model, k)
+        
+        # Evaluate results
+        logger.info("Generating gold data and evaluating results...")
+        gold_data = self.generate_gold_data()
+        metrics = self.evaluate(retrieval_results, gold_data)
+        
+        # Save results
+        self.save_results(metrics, retrieval_results)
+        
+        return metrics, retrieval_results
