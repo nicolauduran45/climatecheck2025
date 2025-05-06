@@ -18,7 +18,7 @@ retriever:
   granularity: "document"  # Options: document, passage, sentence
   params:
     k: 10  # Number of documents to retrieve
-    content_type: "abstract"
+    content_type: "abstract_only"
 
 # Evaluation settings
 evaluation:

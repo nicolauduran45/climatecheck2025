@@ -67,13 +67,10 @@ climatecheck/
 ## 🏃‍♂️ Running Experiments
 ```bash
 # Run retrieval experiment
-python experiments/retrieval/run_experiment.py --config configs/retrieval/bm25_baseline.yaml
-
+python -m src.run_experiment --config configs/retrieval/dense_retrieval_specter.yaml
 # Run verification experiment
-python experiments/verification/run_experiment.py --config configs/verification/bert_baseline.yaml
 
 # Run end-to-end pipeline
-python experiments/run_pipeline.py --retrieval configs/retrieval/best.yaml --verification configs/verification/best.yaml
 ```
 
 ## 📚 Datasets
